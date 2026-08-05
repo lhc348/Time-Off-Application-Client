@@ -1,6 +1,10 @@
 import { date, object, string } from "yup";
 
 import dayjs from "dayjs";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+
+// extend dayjs with isSameOrBefore plugin
+dayjs.extend(isSameOrBefore);
 
 const isSunday = date => dayjs(date).day() === 0;
 const isWithinMonths = (date1, date2, months) => dayjs(date1).diff(dayjs(date2), "month", true) <= months;
@@ -94,17 +98,19 @@ const schema = object().shape({
         // Iterate each calendar day between start and end and check weekday office hours overlap
         const dayStart = start.startOf("day");
         const lastDay = end.startOf("day");
-        for (let d = dayStart.clone(); d.isSameOrBefore(lastDay); d = d.add(1, "day")) {
+        let d = dayStart;
+        while (d.isSameOrBefore(lastDay)) {
           const dayOfWeek = d.day(); // 0 = Sunday, 6 = Saturday
-          if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            const officeStart = d.hour(8).minute(45).second(0);
+            const officeEnd = d.hour(17).minute(33).second(0);
 
-          const officeStart = d.hour(8).minute(45).second(0);
-          const officeEnd = d.hour(17).minute(33).second(0);
-
-          // overlap if start < officeEnd && end > officeStart
-          if (start.isBefore(officeEnd) && end.isAfter(officeStart)) {
-            return false; // overlap found -> validation fails
+            // overlap if start < officeEnd && end > officeStart
+            if (start.isBefore(officeEnd) && end.isAfter(officeStart)) {
+              return false; // overlap found -> validation fails
+            }
           }
+          d = d.add(1, "day");
         }
 
         return true;
