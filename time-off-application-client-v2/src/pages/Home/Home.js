@@ -149,6 +149,12 @@ const Home = () => {
                 </TextField>
               </Grid>
               <Grid item xs={12}>
+                <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                  Please input text:[TSR/CR/SR/INC no.][Details Description]
+                </Typography>
+                <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  Sample:[BID20260102-126238][tablespace enlargement for AFW and IBX DB]
+                </Typography>
                 <TextField
                   name="task.details"
                   control={control}
