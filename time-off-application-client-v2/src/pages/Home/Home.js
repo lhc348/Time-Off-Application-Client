@@ -27,6 +27,47 @@ const defaultFormValues = {
   timeOffs: [{ date: "", session: "" }]
 };
 
+// Helper: calculate OT duration in minutes based on timeOffs
+function calculateOtDurationMinutes(timeOffs) {
+  if (!timeOffs || timeOffs.length === 0) return 0;
+  if (timeOffs.length > 1) return 7 * 60 + 48; // 7h48m = 468 minutes
+  const session = (timeOffs[0].session || "").toLowerCase();
+  if (session === "full day" || session === "fullday" || session === "full-day") return 7 * 60 + 48;
+  // treat AM/PM as half day
+  return 3 * 60 + 54; // 3h54m = 234 minutes
+}
+
+// Helper: check whether [start, end) intersects office hours (08:45-17:33) on any weekday
+function intersectsOfficeHoursOnWeekday(start, end) {
+  if (!(start instanceof Date)) start = new Date(start);
+  if (!(end instanceof Date)) end = new Date(end);
+
+  if (end <= start) return false;
+
+  function atMidnight(d) {
+    const n = new Date(d);
+    n.setHours(0, 0, 0, 0);
+    return n;
+  }
+
+  const dayStart = atMidnight(start);
+  const lastDay = atMidnight(end);
+
+  for (let d = new Date(dayStart); d <= lastDay; d.setDate(d.getDate() + 1)) {
+    const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek === 0 || dayOfWeek === 6) continue; // skip weekends
+
+    const officeStart = new Date(d);
+    officeStart.setHours(8, 45, 0, 0);
+    const officeEnd = new Date(d);
+    officeEnd.setHours(17, 33, 0, 0);
+
+    if (start < officeEnd && end > officeStart) return true;
+  }
+
+  return false;
+}
+
 const Home = () => {
   const sx = useSx();
   const submitButtonRef = useRef();
@@ -67,6 +108,22 @@ const Home = () => {
   const handleInsert = index => () => insert(index + 1, { date: "", session: "" });
   const handleDelete = index => () => remove(index);
   const handleFormSubmit = actingApproverCorpId => data => {
+    // client-side validation: check OT interval does not overlap office hours on weekdays
+    try {
+      const start = new Date(data.task.date);
+      const durationMinutes = calculateOtDurationMinutes(data.timeOffs || []);
+      const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+
+      if (intersectsOfficeHoursOnWeekday(start, end)) {
+        // show prompt message and abort submit
+        window.alert("Task date is overlaps with office hours (08:45-17:33) on a weekday");
+        return;
+      }
+    } catch (err) {
+      window.alert("Invalid task date or timeOffs");
+      return;
+    }
+
     const formData = {
       ...data,
       submitToHR: true // TODO: This may be false in the future depending on the application
