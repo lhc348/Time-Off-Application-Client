@@ -11,10 +11,10 @@ const isWithinMonths = (date1, date2, months) => dayjs(date1).diff(dayjs(date2),
 
 const errors = {
   TIME_OFF_DATE_TOO_EARLY: "Time off date should not earlier than task completion date",
-  TIME_OFF_OUT_OF_RANGE_SUN: "Time off must be claimed within 1 month",
+  //TIME_OFF_OUT_OF_RANGE_SUN: "Time off must be claimed within 1 month",
   TIME_OFF_OUT_OFF_RANGE_MON_TO_SAT: "Time off must be claimed within 6 months",
   TIME_OFF_SESSION_WRONG_COMBO: "Time off sessions must be either (1) 1 Full day session, (2) 1 half day session or (3) a combination of 2 half day sessions",
-  TIME_OFF_SESSION_NOT_FULL_DAY_SUN: "Time off of Sunday task(s) must be a full day session or a combination of 2 half day sessions",
+  //TIME_OFF_SESSION_NOT_FULL_DAY_SUN: "Time off of Sunday task(s) must be a full day session or a combination of 2 half day sessions",
   TIME_OFF_OVERLAPS_OFFICE_HOURS: "Task date is overlaps with office hours (08:45-17:33) on a weekday"
 };
 
@@ -33,7 +33,7 @@ const schema = object().shape({
         return timeOffDate.isAfter(taskDate) > 0;
       }
     )
-    .test(
+    /*.test(
       "is-within-1-month-if-task-date-is-sunday",
       errors.TIME_OFF_OUT_OF_RANGE_SUN,
       (value, { from }) => {
@@ -46,7 +46,7 @@ const schema = object().shape({
 
         return true;
       }
-    )
+    )*/
     .test(
       "is-within-6-months-if-task-date-is-not-sunday",
       errors.TIME_OFF_OUT_OFF_RANGE_MON_TO_SAT,
@@ -130,7 +130,7 @@ const schema = object().shape({
         return true;
       }
     )
-    .test(
+    /*.test(
       "is-full-day-when-combined-if-task-date-is-sunday",
       errors.TIME_OFF_SESSION_NOT_FULL_DAY_SUN,
       (value, { from }) => {
@@ -146,7 +146,7 @@ const schema = object().shape({
 
         return true;
       }
-    )
+    )*/
 }).required();
 
 export default schema;
