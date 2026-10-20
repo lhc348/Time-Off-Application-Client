@@ -16,7 +16,13 @@ const useForm = () => {
       ...state.form.timeOffs.reduce((acc, curr, index) => ({
         ...acc,
         [`Time Off Date ${index + 1}`]: dayjs(curr.date).format("YYYY/MM/DD"),
-        [`Time Off Session ${index + 1}`]: curr.session
+        [`Time Off Session ${index + 1}`]: curr.session,
+        ...(curr.session === "1/4 Day"
+          ? {
+            [`Time Off Start Time ${index + 1}`]:
+              dayjs(curr.startTime).format("YYYY/MM/DD HH:mm")
+          }
+          :{})
       }), {})
     }
     : {}, [state?.form]
