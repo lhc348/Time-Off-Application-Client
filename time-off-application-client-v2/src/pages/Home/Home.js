@@ -19,12 +19,12 @@ import { yupResolver } from "@hookform/resolvers/yup";
 const defaultFormValues = {
   officer: "",
   task: {
-    date: "",
+    date: null,       // was ""
     status: "",
     onsite: false,
     details: ""
   },
-  timeOffs: [{ date: "", session: "" }]
+  timeOffs: [{ date: null, session: "", startTime: null }] // date/startTime null
 };
 
 const Home = () => {
@@ -32,7 +32,7 @@ const Home = () => {
   const submitButtonRef = useRef();
   const { state, pathname } = useLocation();
   const navigate = useNavigate();
-  const { control, setValue, handleSubmit } = useForm({
+  const { control, setValue, handleSubmit, trigger, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: defaultFormValues
   });
@@ -64,13 +64,21 @@ const Home = () => {
       .then(actingApprovers => setActingApprovers(actingApprovers));
   }, []);
 
-  const handleInsert = index => () => insert(index + 1, { date: "", session: "" });
+  const handleInsert = index => () => insert(index + 1, { date: "", session: "", startTime: "" });
   const handleDelete = index => () => remove(index);
-  const handleFormSubmit = actingApproverCorpId => data => {
+  const handleFormSubmit = actingApproverCorpId => async data => {
+    // perform an explicit trigger to make validation errors visible
+    const valid = await trigger();
+    if (!valid) {
+      console.log("Validation failed:", errors);
+      return;
+    }
+
     const formData = {
       ...data,
       submitToHR: true // TODO: This may be false in the future depending on the application
     };
+
     const navigateToConfirmPage = () => {
       navigate(pathname, {}); // clear router state
       navigate(nav.APPLICATION_CONFIRMATION.path, {
@@ -81,14 +89,18 @@ const Home = () => {
     };
 
     setSubmitting(true);
-    if (state?.form) {
-      updateTimeOff(formData, actingApproverCorpId)
-        .then(() => navigateToConfirmPage())
-        .finally(setSubmitting(false));
-    } else {
-      applyTimeOff(formData, actingApproverCorpId)
-        .then(() => navigateToConfirmPage())
-        .finally(setSubmitting(false));
+    try {
+      if (state?.form) {
+        await updateTimeOff(formData, actingApproverCorpId);
+      } else {
+        await applyTimeOff(formData, actingApproverCorpId);
+      }
+      navigateToConfirmPage();
+    } catch (err) {
+      // show a console error — you can replace with UI toast if desired
+      console.error("submit failed", err);
+    } finally {
+      setSubmitting(false); // fixed: pass a function to finally by using try/finally
     }
   };
 
@@ -149,10 +161,10 @@ const Home = () => {
                 </TextField>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                <Typography variant="subtitle2" color="primary" sx={{ fontWeight: "bold", mb: 0.5 }}>
                   Please input text:[TSR/CR/SR/INC no.][Details Description]
                 </Typography>
-                <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold', mb: 1 }}>
+                <Typography variant="subtitle2" color="primary" sx={{ fontWeight: "bold", mb: 1 }}>
                   Sample:[BID20260102-126238][tablespace enlargement for AFW and IBX DB]
                 </Typography>
                 <TextField
@@ -178,6 +190,7 @@ const Home = () => {
                   key={id}
                   index={index}
                   control={control}
+                  setValue={setValue}
                   onInsert={handleInsert(index)}
                   onDelete={handleDelete(index)}
                 />
